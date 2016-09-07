@@ -6,7 +6,7 @@
 
 Module is available in PowershellGallery: https://www.powershellgallery.com/packages/Drude
 
-It means that you don't need to install any additional sofrware for install/update/uninstall Drude PowerShell module. Pretty cool, hah?
+It means that you don't need to install any additional software for install/update/uninstall Drude PowerShell module. Pretty cool, hah?
 
 ## Drude Powershell Module
 ### Installation
