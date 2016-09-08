@@ -40,7 +40,7 @@ You can get list of commands using next command in PowerShell:
 Get-Command dsh-*
 ```
 
-**Note**: All commands should be executed in folder with `docker-compose.yml`. Other words - in root directory of current repo.
+**Note**: All commands should be executed in folder with `docker-compose.yml`.
 
 ### Getting help
 All commands are documented and you can see example of usage just use default PowerShell help: 
