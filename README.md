@@ -8,6 +8,8 @@ Module is available in PowershellGallery: https://www.powershellgallery.com/pack
 
 It means that you don't need to install any additional software for install/update/uninstall Drude PowerShell module. Pretty cool, hah?
 
+Just remember, **Drude PowerShell module and all this repo contents are not official parts of Drude!** It's just workaround for Windows 10 users who suffered long enough.
+
 ## Drude Powershell Module
 ### Installation
 You need to allow PowerShell modules to run in your system. For allowing it - just open `powershell as Administrator` and execute next: 

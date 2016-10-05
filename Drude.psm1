@@ -36,8 +36,8 @@ Function Start-Drude(){
         Write-Host -ForegroundColor Green -Object "Starting all containers..."
         docker-compose up -d
 
-        Write-Host -ForegroundColor Green -Object "Reseting permissions on /var/www in $cliContainer container..."
-        docker exec -u root $(docker-compose ps -q $cliContainer) bash -c "chown -R docker:users /var/www"
+        #Write-Host -ForegroundColor Green -Object "Reseting permissions on /var/www in $cliContainer container..."
+        #docker exec -u root $(docker-compose ps -q $cliContainer) bash -c "chown -R docker:users /var/www"
     }
 }
 
@@ -252,6 +252,22 @@ Function Clear-Drude(){
         switch ($result){
             0 {
                 docker-compose down $arguments
+
+                Write-Host -ForegroundColor Cyan -Object "Do you want to remove all downloaded docker images?"
+                Write-Host -ForegroundColor Red -Object "WARNING! This operation cannot be undone and will result to lost of data of all projects in your system!"
+
+                $yes = New-Object System.Management.Automation.Host.ChoiceDescription "&Yes", `
+                    "Yes, Delete all docker images."
+                $no = New-Object System.Management.Automation.Host.ChoiceDescription "&No", `
+                    "Keeps all as it is."
+                $options = [System.Management.Automation.Host.ChoiceDescription[]]($yes, $no)
+                $result2 = $host.ui.PromptForChoice($title, "", $options, 1) 
+
+                switch($result2) {
+                    0 {
+                        docker rmi $(docker images -q)
+                    }
+                }
             }
         }
     }
