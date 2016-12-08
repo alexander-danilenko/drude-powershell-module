@@ -27,17 +27,30 @@ Function Check-ForDockerComposeFile(){
 #>
 Function Start-Drude(){
     [cmdletbinding()]
-    [Alias("dsh-up")]
+    [Alias("dsh-up", "fin-up")]
     param (
       [Parameter(Position=0)][string]$cliContainer = "cli"
     )
 
     if(Check-ForDockerComposeFile -eq $true){
         Write-Host -ForegroundColor Green -Object "Starting all containers..."
-        docker-compose up -d
+        docker-compose up -d --remove-orphans
 
-        #Write-Host -ForegroundColor Green -Object "Reseting permissions on /var/www in $cliContainer container..."
-        #docker exec -u root $(docker-compose ps -q $cliContainer) bash -c "chown -R docker:users /var/www"
+        #Write-Verbose "Resetting user id in $cliContainer container ..."
+        #$host_uid = $(id -u)
+        #$container_uid = Invoke-DrudeBashCommand "id -u"
+
+        #if($host_uid -ne $container_uid) {
+        #    Write-Verbose "Host UID ($host_uid) do not matches container UID ($container_uid)."
+        #    Write-Host -ForegroundColor Yellow "Changing User ID in $cliContainer container $container_uid to $host_uid for matching host user id. It's one time operation so please be patient, it may take a while..."
+        #    Invoke-DrudeBashCommand "usermod -u $host_uid -o docker" -container $cliContainer -user "root"
+        #    Invoke-DrudeBashCommand "chown -R docker:users /var/www" -container $cliContainer -user "root"
+        #} else {
+        #    Write-Verbose "Host UID already ($host_uid) matches container UID ($container_uid)."
+        #}
+
+        Write-Verbose "Create ~/.phpstorm_helpers/phpcs_temp.tmp for being able to use PhpSniffer in PHPStorm."
+        Invoke-DrudeBashCommand "mkdir /home/docker/.phpstorm_helpers/phpcs_temp.tmp -p -m 777" -container $cliContainer -user "root"
     }
 }
 
@@ -54,7 +67,7 @@ Function Start-Drude(){
 #>
 Function Stop-Drude(){
     [cmdletbinding()]
-    [Alias("dsh-down","dsh-stop")]
+    [Alias("dsh-down","dsh-stop", "fin-down","fin-stop")]
     param ()
 
     if(Check-ForDockerComposeFile -eq $true){
@@ -76,7 +89,7 @@ Function Stop-Drude(){
 #>
 Function Restart-Drude(){
     [cmdletbinding()]
-    [Alias("dsh-restart")]
+    [Alias("dsh-restart", "fin-restart")]
     param ()
 
     Stop-Drude
@@ -96,7 +109,7 @@ Function Restart-Drude(){
 #>
 Function Get-DrudeStatus(){
     [cmdletbinding()]
-    [Alias("dsh-status", "dsh-ps")]
+    [Alias("dsh-status", "dsh-ps", "fin-status", "fin-ps")]
     param (
         [Parameter(Position=0)][string]$container = ""
     )
@@ -122,12 +135,13 @@ Function Get-DrudeStatus(){
 #>
 Function Invoke-DrudeBash(){
     [cmdletbinding()]
-    [Alias("dsh-bash")]
+    [Alias("dsh-bash", "fin-bash")]
     param (
         [Parameter(Position=0)][string]$container = "cli"
     )
 
     if(Check-ForDockerComposeFile -eq $true){
+        Write-Verbose "docker exec -it $(docker-compose ps -q $container) bash"
         docker exec -it $(docker-compose ps -q $container) bash
     }
     [Console]::ResetColor()
@@ -151,14 +165,16 @@ Function Invoke-DrudeBash(){
 #>
 Function Invoke-DrudeBashCommand(){
     [cmdletbinding()]
-    [Alias("dsh-exec")]
+    [Alias("dsh-exec", "fin-exec")]
     param (
         [Parameter(Position=0,Mandatory=$true)][string]$command = "ls -la",
-        [Parameter(Position=1)][string]$container = "cli"
+        [Parameter(Position=1)][string]$container = "cli",
+        [string]$user = "docker"
     )
 
     if(Check-ForDockerComposeFile -eq $true){
-        docker exec -it $(docker-compose ps -q $container) bash -c "$command"
+        Write-Verbose "docker exec -u $user -it $(docker-compose ps -q $container) bash -c `"$command`""
+        docker exec -u $user -it $(docker-compose ps -q $container) bash -c "$command"
     }
     [Console]::ResetColor()
 }
@@ -175,7 +191,7 @@ Function Invoke-DrudeBashCommand(){
 #>
 Function Invoke-DrudeDrushCommand(){
     [cmdletbinding()]
-    [Alias("dsh-drush")]
+    [Alias("dsh-drush", "fin-drush")]
     param (
         [Parameter(Position=0)][string]$command = "status",
         [Parameter(Position=1)][string]$site = "default",
@@ -184,9 +200,7 @@ Function Invoke-DrudeDrushCommand(){
     )
 
     if(Check-ForDockerComposeFile -eq $true){
-        Write-Host -ForegroundColor Cyan   -Object "Executing"
-        Write-Host -ForegroundColor Yellow -Object "$drush $command" 
-        Write-Host -ForegroundColor Cyan   -Object "in $docroot/sites/$site folder of $cliContainer container..."
+        Write-Verbose "docker exec -it $(docker-compose ps -q $cliContainer) bash -c `"cd $docroot && cd sites/$site && drush $command`""
         docker exec -it $(docker-compose ps -q $cliContainer) bash -c "cd $docroot && cd sites/$site && drush $command"
         [Console]::ResetColor()
     }
@@ -209,7 +223,7 @@ Function Invoke-DrudeDrushCommand(){
 #>
 Function Get-DrudeLogs(){
     [cmdletbinding()]
-    [Alias("dsh-logs")]
+    [Alias("dsh-logs", "fin-logs")]
     param (
         [Parameter(Position=0)][string]$container = ""
     )
@@ -233,7 +247,7 @@ Function Get-DrudeLogs(){
 #>
 Function Clear-Drude(){
     [cmdletbinding()]
-    [Alias("dsh-destroy")]
+    [Alias("dsh-destroy", "fin-destroy")]
     param (
       [string]$arguments = "--remove-orphans"
     )
@@ -287,7 +301,7 @@ Function Clear-Drude(){
 #>
 Function Reset-Drude(){
     [cmdletbinding()]
-    [Alias("dsh-reset")]
+    [Alias("dsh-reset", "fin-reset")]
     param (
       [string]$arguments = "--remove-orphans"
     )
@@ -331,7 +345,7 @@ Function Reset-Drude(){
 #>
 Function Invoke-DrudeBehat(){
     [cmdletbinding()]
-    [Alias("dsh-behat")]
+    [Alias("dsh-behat", "fin-behat")]
     param (
       [Parameter(Position=0)][string]$behatParams = '',
       [string]$folder = "tests/behat"
@@ -357,7 +371,7 @@ Function Invoke-DrudeBehat(){
             if($behat_binary_bound -eq $false){
                 Write-Host -ForegroundColor Yellow -Object "Behat is not installed. Installing..."
             }
-            dsh-exec -container "cli" -command "cd $folder && composer install --prefer-source --no-interaction && ./bin/behat -p docker $behatParams"
+            Invoke-DrudeBashCommand -container cli -command "cd $folder && composer install --prefer-source --no-interaction && ./bin/behat -p docker $behatParams"
         }
     }
     [Console]::ResetColor()
@@ -380,7 +394,7 @@ Function Invoke-DrudeBehat(){
 #>
 Function Initialize-DrudeDwnd(){
     [cmdletbinding()]
-    [Alias("dsh-init-dwnd")]
+    [Alias("dsh-init-dwnd", "fin-init-dwnd")]
     param (
       [Parameter(Position=0)][string]$folder = 'dwnd'
     )
