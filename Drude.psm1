@@ -4,12 +4,59 @@ requires -version 3.0
 
 Function Check-ForDockerComposeFile(){
     $file_found = Test-Path ".\docker-compose.yml";
-    
-    if($file_found -eq $false){
-        Write-Host -ForegroundColor Red -Object "Sorry, but docker-compose.yml file is not found in current directory."
-    }
+    Write-Verbose "docker-compose.yml file found: $file_found"
 
     return $file_found
+}
+
+Function Check-DockerIsRunning() {
+    $docker_for_windows_process_name = "Docker for Windows";
+    $docker_is_running = Get-Process "$docker_for_windows_process_name" -ErrorAction Ignore;
+    Write-Verbose "Docker is running: $docker_is_running"
+    if($docker_is_running -eq $null) {
+        return $false;
+    } else {
+        return $true;
+    }
+}
+
+Function Check-DockerContainerIsRunning() {
+    param(
+        [Parameter(Position=0,Mandatory=$true)][string]$container
+    )
+
+    $container_status = ($(docker ps --filter id=$(docker-compose ps -q $container)) -match "Up ");
+    Write-Verbose "$container container status output: $container_status"
+    if($container_status -match "Up ") {
+        return $true
+    } else {
+        Write-Verbose "$container container is not running."
+        return $false
+    }
+}
+
+Function Check-Drude() {
+    param(
+        [string]$container = ""
+    )
+
+    $docker_compose_found = Check-ForDockerComposeFile
+    $docker_is_running = Check-DockerIsRunning
+        
+    if($docker_compose_found -eq $false) {
+        Write-Host -ForegroundColor Red -Object "docker-compose.yml file is not found in current directory."
+        return $false
+    }
+    if ($docker_is_running -eq $false) {
+        Write-Host -ForegroundColor Red -Object "Docker for Windows is not running. Start Docker for Windows first."
+        return $false
+    } 
+    if (($container -ne "") -and ($(Check-DockerContainerIsRunning($container)) -eq $false)) {
+        Write-Host -ForegroundColor Red -Object "Container '$container' is not running."
+        return $false
+    }
+
+    return $true
 }
 
 # ================================================================================================== #
@@ -31,15 +78,15 @@ Function Start-Drude(){
     param (
       [Parameter(Position=0)][string]$cliContainer = "cli"
     )
-
-    if(Check-ForDockerComposeFile -eq $true){
+    
+    if(Check-Drude -eq $true){
         Write-Host -ForegroundColor Green -Object "Starting all containers..."
         docker-compose up -d --remove-orphans
 
         #Write-Verbose "Resetting user id in $cliContainer container ..."
         #$host_uid = $(id -u)
         #$container_uid = Invoke-DrudeBashCommand "id -u"
-
+        #
         #if($host_uid -ne $container_uid) {
         #    Write-Verbose "Host UID ($host_uid) do not matches container UID ($container_uid)."
         #    Write-Host -ForegroundColor Yellow "Changing User ID in $cliContainer container $container_uid to $host_uid for matching host user id. It's one time operation so please be patient, it may take a while..."
@@ -49,8 +96,10 @@ Function Start-Drude(){
         #    Write-Verbose "Host UID already ($host_uid) matches container UID ($container_uid)."
         #}
 
-        Write-Verbose "Create ~/.phpstorm_helpers/phpcs_temp.tmp for being able to use PhpSniffer in PHPStorm."
-        Invoke-DrudeBashCommand "mkdir /home/docker/.phpstorm_helpers/phpcs_temp.tmp -p -m 777" -container $cliContainer -user "root"
+        #Write-Verbose "Create ~/.phpstorm_helpers/phpcs_temp.tmp for being able to use PhpSniffer in PHPStorm."
+        #Invoke-DrudeBashCommand "mkdir /home/docker/.phpstorm_helpers/phpcs_temp.tmp -p -m 777" -container $cliContainer -user "root"
+
+        Invoke-DrudeBashCommand -command "sudo service php5-fpm restart"
     }
 }
 
@@ -70,7 +119,7 @@ Function Stop-Drude(){
     [Alias("dsh-down","dsh-stop", "fin-down","fin-stop")]
     param ()
 
-    if(Check-ForDockerComposeFile -eq $true){
+    if(Check-Drude -eq $true){
         Write-Host -ForegroundColor Green -Object "Stopping all containers..."
         docker-compose stop
     }
@@ -114,7 +163,7 @@ Function Get-DrudeStatus(){
         [Parameter(Position=0)][string]$container = ""
     )
 
-    if(Check-ForDockerComposeFile -eq $true){
+    if($(Check-Drude) -eq $true) {
         docker-compose ps $container
     }
 }
@@ -140,7 +189,7 @@ Function Invoke-DrudeBash(){
         [Parameter(Position=0)][string]$container = "cli"
     )
 
-    if(Check-ForDockerComposeFile -eq $true){
+    if($(Check-Drude -container $container) -eq $true){
         Write-Verbose "docker exec -it $(docker-compose ps -q $container) bash"
         docker exec -it $(docker-compose ps -q $container) bash
     }
@@ -172,7 +221,7 @@ Function Invoke-DrudeBashCommand(){
         [string]$user = "docker"
     )
 
-    if(Check-ForDockerComposeFile -eq $true){
+    if($(Check-Drude -container $container) -eq $true){
         Write-Verbose "docker exec -u $user -it $(docker-compose ps -q $container) bash -c `"$command`""
         docker exec -u $user -it $(docker-compose ps -q $container) bash -c "$command"
     }
@@ -199,7 +248,7 @@ Function Invoke-DrudeDrushCommand(){
         [Parameter(Position=3)][string]$cliContainer = "cli"
     )
 
-    if(Check-ForDockerComposeFile -eq $true){
+    if($(Check-Drude -container $cliContainer) -eq $true){
         Write-Verbose "docker exec -it $(docker-compose ps -q $cliContainer) bash -c `"cd $docroot && cd sites/$site && drush $command`""
         docker exec -it $(docker-compose ps -q $cliContainer) bash -c "cd $docroot && cd sites/$site && drush $command"
         [Console]::ResetColor()
@@ -228,7 +277,7 @@ Function Get-DrudeLogs(){
         [Parameter(Position=0)][string]$container = ""
     )
 
-    if(Check-ForDockerComposeFile -eq $true){
+    if($(Check-Drude -container $container) -eq $true){
         docker-compose logs -f $container
     }
     [Console]::ResetColor()
@@ -252,7 +301,7 @@ Function Clear-Drude(){
       [string]$arguments = "--remove-orphans"
     )
 
-    if(Check-ForDockerComposeFile -eq $true){
+    if($(Check-Drude) -eq $true){
         Write-Host -ForegroundColor Cyan -Object "You are going to remove ALL CONTAINERS and their contents (like database tables, caches, manually installed packages, etc.)."
         Write-Host -ForegroundColor Red -Object "This operation cannot be undone and may result to lost of data!"
         
@@ -306,7 +355,7 @@ Function Reset-Drude(){
       [string]$arguments = "--remove-orphans"
     )
 
-    if(Check-ForDockerComposeFile -eq $true){
+    if($(Check-Drude) -eq $true){
         Write-Host -ForegroundColor Cyan -Object "You are going to remove ALL CONTAINERS and their contents (like database tables, caches, manually installed packages, etc.)."
         Write-Host -ForegroundColor Red -Object "This operation cannot be undone and may result to lost of data!"
 
@@ -351,7 +400,7 @@ Function Invoke-DrudeBehat(){
       [string]$folder = "tests/behat"
     )
 
-    if(Check-ForDockerComposeFile -eq $true){
+    if($(Check-Drude) -eq $true){
         $behat_folder_found   = Test-Path $folder
         $behat_yml_found      = Test-Path "$folder/behat.yml"
         $behat_binary_bound   = Test-Path "$folder/bin/behat"
