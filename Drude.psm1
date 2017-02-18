@@ -74,7 +74,7 @@ Function Check-Drude() {
 #>
 Function Start-Drude(){
     [cmdletbinding()]
-    [Alias("dsh-up", "fin-up")]
+    [Alias("dsh-up")]
     param (
       [Parameter(Position=0)][string]$cliContainer = "cli"
     )
@@ -116,7 +116,7 @@ Function Start-Drude(){
 #>
 Function Stop-Drude(){
     [cmdletbinding()]
-    [Alias("dsh-down","dsh-stop", "fin-down","fin-stop")]
+    [Alias("dsh-down","dsh-stop")]
     param ()
 
     if(Check-Drude -eq $true){
@@ -138,7 +138,7 @@ Function Stop-Drude(){
 #>
 Function Restart-Drude(){
     [cmdletbinding()]
-    [Alias("dsh-restart", "fin-restart")]
+    [Alias("dsh-restart")]
     param ()
 
     Stop-Drude
@@ -158,7 +158,7 @@ Function Restart-Drude(){
 #>
 Function Get-DrudeStatus(){
     [cmdletbinding()]
-    [Alias("dsh-status", "dsh-ps", "fin-status", "fin-ps")]
+    [Alias("dsh-status", "dsh-ps")]
     param (
         [Parameter(Position=0)][string]$container = ""
     )
@@ -184,7 +184,7 @@ Function Get-DrudeStatus(){
 #>
 Function Invoke-DrudeBash(){
     [cmdletbinding()]
-    [Alias("dsh-bash", "fin-bash")]
+    [Alias("dsh-bash")]
     param (
         [Parameter(Position=0)][string]$container = "cli"
     )
@@ -214,7 +214,7 @@ Function Invoke-DrudeBash(){
 #>
 Function Invoke-DrudeBashCommand(){
     [cmdletbinding()]
-    [Alias("dsh-exec", "fin-exec")]
+    [Alias("dsh-exec")]
     param (
         [Parameter(Position=0,Mandatory=$true)][string]$command = "ls -la",
         [Parameter(Position=1)][string]$container = "cli",
@@ -240,7 +240,7 @@ Function Invoke-DrudeBashCommand(){
 #>
 Function Invoke-DrudeDrushCommand(){
     [cmdletbinding()]
-    [Alias("dsh-drush", "fin-drush")]
+    [Alias("dsh-drush")]
     param (
         [Parameter(Position=0)][string]$command = "status",
         [Parameter(Position=1)][string]$site = "default",
@@ -272,7 +272,7 @@ Function Invoke-DrudeDrushCommand(){
 #>
 Function Get-DrudeLogs(){
     [cmdletbinding()]
-    [Alias("dsh-logs", "fin-logs")]
+    [Alias("dsh-logs")]
     param (
         [Parameter(Position=0)][string]$container = ""
     )
@@ -296,7 +296,7 @@ Function Get-DrudeLogs(){
 #>
 Function Clear-Drude(){
     [cmdletbinding()]
-    [Alias("dsh-destroy", "fin-destroy")]
+    [Alias("dsh-destroy")]
     param (
       [string]$arguments = "--remove-orphans"
     )
@@ -350,7 +350,7 @@ Function Clear-Drude(){
 #>
 Function Reset-Drude(){
     [cmdletbinding()]
-    [Alias("dsh-reset", "fin-reset")]
+    [Alias("dsh-reset")]
     param (
       [string]$arguments = "--remove-orphans"
     )
@@ -394,7 +394,7 @@ Function Reset-Drude(){
 #>
 Function Invoke-DrudeBehat(){
     [cmdletbinding()]
-    [Alias("dsh-behat", "fin-behat")]
+    [Alias("dsh-behat")]
     param (
       [Parameter(Position=0)][string]$behatParams = '',
       [string]$folder = "tests/behat"
@@ -443,7 +443,7 @@ Function Invoke-DrudeBehat(){
 #>
 Function Initialize-DrudeDwnd(){
     [cmdletbinding()]
-    [Alias("dsh-init-dwnd", "fin-init-dwnd")]
+    [Alias("dsh-init-dwnd")]
     param (
       [Parameter(Position=0)][string]$folder = 'dwnd'
     )
