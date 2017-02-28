@@ -45,15 +45,15 @@ Function Check-Drude() {
         
     if($docker_compose_found -eq $false) {
         Write-Host -ForegroundColor Red -Object "docker-compose.yml file is not found in current directory."
-        return $false
+        break
     }
     if ($docker_is_running -eq $false) {
         Write-Host -ForegroundColor Red -Object "Docker for Windows is not running. Start Docker for Windows first."
-        return $false
+        break
     } 
     if (($container -ne "") -and ($(Check-DockerContainerIsRunning($container)) -eq $false)) {
         Write-Host -ForegroundColor Red -Object "Container '$container' is not running."
-        return $false
+        break
     }
 
     return $true
@@ -437,48 +437,35 @@ Function Invoke-DrudeBehat(){
 .EXAMPLE
    Initialize-DrudeDwnd folderName
 .EXAMPLE
-   dsh-init-dwnd
+   dsh-init
 .EXAMPLE
-   dsh-init-dwnd folderName
+   dsh-init folderName
 #>
 Function Initialize-DrudeDwnd(){
     [cmdletbinding()]
-    [Alias("dsh-init-dwnd")]
-    param (
-      [Parameter(Position=0)][string]$folder = 'dwnd'
-    )
+    [Alias("dsh-init")]
+    param ()
         $currentFolder        = Resolve-Path ".\"
         $zip_file_url         = "https://github.com/fat763/dwnd/archive/master.zip"
-        $unzipped_folder_name = "dwnd-master"
-        $zip_tmp_filename     = "dwnd-temp.zip"
+        $zip_tmp_filename     = "$env:temp\dwnd-temp.zip"
 
-        $end_zip_tmp    = Join-Path $currentFolder -ChildPath $zip_tmp_filename
-        $end_folder     = Join-Path $currentFolder -ChildPath $folder
-        $end_folder_tmp = Join-Path $currentFolder -ChildPath $unzipped_folder_name
-        
-        $folder_already_exists = Test-Path ".\$folder"
-        if($folder_already_exists -eq $true) {
-            Write-Host -ForegroundColor Red -Object "Folder $end_folder already exists. Aborting..."
-        } else {
-            Write-Host -ForegroundColor Yellow -Object "You are going to downlowd DWND template project to $end_folder"
-            $yes = New-Object System.Management.Automation.Host.ChoiceDescription "&Yes", `
-                "Yes, download to $end_folder."
-            $no = New-Object System.Management.Automation.Host.ChoiceDescription "&No", `
-                "Nope, nope nope."
-            $options = [System.Management.Automation.Host.ChoiceDescription[]]($yes, $no)
-            $result = $host.ui.PromptForChoice($title, "Are you sure?", $options, 0) 
+        Write-Host -ForegroundColor Yellow -Object "You are going to downlowd DWND template project to $currentFolder"
+        $yes = New-Object System.Management.Automation.Host.ChoiceDescription "&Yes", `
+            "Yes, download to $folder."
+        $no = New-Object System.Management.Automation.Host.ChoiceDescription "&No", `
+            "Nope, nope nope."
+        $options = [System.Management.Automation.Host.ChoiceDescription[]]($yes, $no)
+        $result = $host.ui.PromptForChoice($title, "Are you sure?", $options, 0) 
 
-            switch ($result){
-                0 {
-                    # This code is just copy-pasted. I would be really appreciated if somebody can refactor this.
-                    (New-Object Net.WebClient).DownloadFile($zip_file_url.ToString(), $end_zip_tmp.ToString());(new-object -com shell.application).namespace($currentFolder.ToString()).CopyHere((new-object -com shell.application).namespace($end_zip_tmp.ToString()).Items(),16)
-        
-                    Remove-Item -Path "$end_zip_tmp" -Force -ErrorAction Stop
-                    Rename-Item -Path "$end_folder_tmp" $folder -Force -ErrorAction Stop
+        switch ($result){
+            0 {
+                Invoke-WebRequest -Uri $zip_file_url -OutFile $zip_tmp_filename
+                Expand-Archive -Path $zip_tmp_filename -DestinationPath $env:temp
+                Move-Item -Path "$env:temp\dwnd-master\**" -Destination "$currentFolder\"
 
-                    Write-Host -ForegroundColor Green -Object "DWND template project was downloaded to: $end_folder"
-                }
+                Write-Host -ForegroundColor Green -Object "DWND template project was downloaded to: $currentFolder\"
             }
         }
+
     [Console]::ResetColor()
 }
