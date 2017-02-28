@@ -80,7 +80,7 @@ Function Start-Drude(){
     )
     
     if(Check-Drude -eq $true){
-        Write-Host -ForegroundColor Green -Object "Starting all containers..."
+        Write-Host -ForegroundColor Green -Object "Starting all containers for this project ..."
         docker-compose up -d --remove-orphans
 
         #Write-Verbose "Resetting user id in $cliContainer container ..."
@@ -98,8 +98,6 @@ Function Start-Drude(){
 
         #Write-Verbose "Create ~/.phpstorm_helpers/phpcs_temp.tmp for being able to use PhpSniffer in PHPStorm."
         #Invoke-DrudeBashCommand "mkdir /home/docker/.phpstorm_helpers/phpcs_temp.tmp -p -m 777" -container $cliContainer -user "root"
-
-        Invoke-DrudeBashCommand -command "sudo service php5-fpm restart"
     }
 }
 
@@ -117,11 +115,19 @@ Function Start-Drude(){
 Function Stop-Drude(){
     [cmdletbinding()]
     [Alias("dsh-down","dsh-stop")]
-    param ()
+    param (
+        [switch]$allWorking=$false
+    )
 
     if(Check-Drude -eq $true){
-        Write-Host -ForegroundColor Green -Object "Stopping all containers..."
-        docker-compose stop
+        if($allWorking -eq $false) {
+            Write-Host -ForegroundColor Green -Object "Stopping all containers for this project ..."
+            docker-compose stop
+        }
+        else {
+            Write-Host -ForegroundColor Yellow -Object "Stopping all working containers for ALL projects ..."
+            docker stop $(docker ps -q)
+        }
     }
 }
 
@@ -139,10 +145,16 @@ Function Stop-Drude(){
 Function Restart-Drude(){
     [cmdletbinding()]
     [Alias("dsh-restart")]
-    param ()
-
-    Stop-Drude
+    param (
+        [switch]$stopAllWorkingContainers=$false
+    )
+    if($stopAllWorkingContainers -eq $false) {
+        Stop-Drude        
+    } else {
+        Stop-Drude -allWorking
+    }
     Start-Drude
+    
 }
 
 <#
@@ -460,8 +472,8 @@ Function Initialize-DrudeDwnd(){
         switch ($result){
             0 {
                 Invoke-WebRequest -Uri $zip_file_url -OutFile $zip_tmp_filename
-                Expand-Archive -Path $zip_tmp_filename -DestinationPath $env:temp
-                Move-Item -Path "$env:temp\dwnd-master\**" -Destination "$currentFolder\"
+                Expand-Archive -Path $zip_tmp_filename -DestinationPath $env:temp -Force
+                Move-Item -Path "$env:temp\dwnd-master\**" -Destination "$currentFolder\" -Force
 
                 Write-Host -ForegroundColor Green -Object "DWND template project was downloaded to: $currentFolder\"
             }
