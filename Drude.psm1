@@ -192,18 +192,23 @@ Function Get-DrudeStatus(){
 .EXAMPLE
    Invoke-DrudeBash web
 .EXAMPLE
+   Invoke-DrudeBash web root
+.EXAMPLE
    dsh-bash web
+.EXAMPLE
+   dsh-bash web root
 #>
 Function Invoke-DrudeBash(){
     [cmdletbinding()]
     [Alias("dsh-bash")]
     param (
-        [Parameter(Position=0)][string]$container = "cli"
+        [Parameter(Position=0)][string]$container = "cli",
+        [Parameter(Position=1)][string]$user = "docker"
     )
 
     if($(Check-Drude -container $container) -eq $true){
-        Write-Verbose "docker exec -it $(docker-compose ps -q $container) bash"
-        docker exec -it $(docker-compose ps -q $container) bash
+        Write-Verbose "docker exec -u $user -it $(docker-compose ps -q $container) bash"
+        docker exec -u $user -it $(docker-compose ps -q $container) bash
     }
     [Console]::ResetColor()
 }
